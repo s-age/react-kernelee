@@ -1,0 +1,40 @@
+{
+  "name": "@s-age/react-kernelee",
+  "version": "0.1.0",
+  "description": "React bindings for kernelee's Buffer — useBuffer/useDispatch/useKernel/useKernelError + KernelProvider",
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "@s-age/kernelee": "*",
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "@s-age/kernelee": "^0.1.0",
+    "@testing-library/react": "^16.0.1",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "jsdom": "^25.0.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.5.0",
+    "vitest": "^3.0.0"
+  }
+}
