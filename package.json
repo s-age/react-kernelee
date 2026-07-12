@@ -1,8 +1,21 @@
 {
   "name": "@s-age/react-kernelee",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "React bindings for kernelee's Buffer — useBuffer/useDispatch/useKernel/useKernelError + KernelProvider",
   "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/s-age/react-kernelee.git"
+  },
+  "homepage": "https://github.com/s-age/react-kernelee",
+  "keywords": [
+    "kernelee",
+    "react",
+    "observable-state",
+    "usesyncexternalstore",
+    "control-flow"
+  ],
   "publishConfig": {
     "access": "public"
   },
