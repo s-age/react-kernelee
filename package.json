@@ -40,7 +40,7 @@
     "react": ">=18"
   },
   "devDependencies": {
-    "@s-age/kernelee": "file:../kernelee",
+    "@s-age/kernelee": "^0.3.0",
     "@testing-library/react": "^16.0.1",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
