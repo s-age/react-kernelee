@@ -51,12 +51,12 @@ createRoot(document.getElementById('root')!).render(
 Inside the tree, components read state and fire commands — nothing else:
 
 ```tsx
-import { useBuffer, useDispatch, useKernelError } from 'react-kernelee';
+import { useBuffer, useTrigger, useKernelError } from '@s-age/react-kernelee';
 import { GridState, refreshGrid } from './contract.js';
 
 function GridView() {
   const grid = useBuffer(GridState);          // re-renders on every mutate
-  const refresh = useDispatch(refreshGrid);   // stable fn, fire-and-forget
+  const refresh = useTrigger(refreshGrid);    // stable fn, fire-and-forget
   const error = useKernelError();             // KernelErrorState.message sugar
 
   return (
@@ -93,19 +93,40 @@ function GridView() {
   Throws `BufferError` (`'unallocated'`) if `key` was never allocated — same
   as calling `kernel.buffer.read(key)` directly.
 
-- **`useDispatch(sym: KernelSymbol<P, O>): (payload: P) => void`** (or
-  `useDispatch(sym: KernelSymbol<void, O>): () => void` for `void`-payload
-  commands — sugar mirroring `kernel.call(sym)`'s own void overload) — binds
-  a symbol to a component-stable dispatcher for event handlers. `dispatch`
-  is already fire-and-forget and forward-only (no return value; failures go
-  to the error sink, never to the caller); this hook only gives the call a
-  stable identity via `useCallback`.
+- **`useDispatch(sym: KernelSymbol<P, O>): (payload: P) => void`** — binds a
+  non-`void`-payload symbol to a component-stable dispatcher for event
+  handlers. `dispatch` is already fire-and-forget and forward-only (no
+  return value; failures go to the error sink, never to the caller); this
+  hook only gives the call a stable identity via `useCallback`.
+  `void`-payload symbols are rejected at compile time — use `useTrigger`
+  instead.
+
+- **`useTrigger(sym: KernelSymbol<void, O>): () => void`** — the sole
+  binding form for `void`-payload commands. Returns a stable zero-argument
+  dispatcher that forwards nothing, so handing it to `onClick` et al. can
+  never leak the event object into the dispatched payload.
+
+  The exclusive three-way split for binding a command to a handler:
+  **`void` → `useTrigger` / non-`void` → `useDispatch(sym)` / action →
+  `useDispatch()`.**
 
 - **`useKernelError(): string | null`** — sugar for
   `useBuffer(KernelErrorState).message`. Observes the *default* error sink
   only: an app that injects its own `onError` at `build()` replaces that sink
   entirely, so this hook always reads `null` in that case — read your own
   error state via `useBuffer` instead.
+
+  It only reads; clearing is the displaying view's job through the normal
+  dispatch path, not a second hook:
+
+  ```ts
+  const message = useKernelError();
+  const dispatch = useDispatch(); // or useTrigger(clearError) for a bare symbol
+  // <button onClick={() => dispatch(FaultsActions.clearError())}>dismiss</button>
+  ```
+
+  the handler side `mutate`s `KernelErrorState` back to `{ message: null }`
+  (see the kernelee README's dispatch/onError recipe).
 
 ## View-layer discipline
 

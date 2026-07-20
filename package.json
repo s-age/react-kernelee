@@ -1,7 +1,7 @@
 {
   "name": "@s-age/react-kernelee",
-  "version": "0.2.1",
-  "description": "React bindings for kernelee's Buffer — useBuffer/useDispatch/useKernel/useKernelError + KernelProvider",
+  "version": "0.3.0",
+  "description": "React bindings for kernelee's Buffer — useBuffer/useDispatch/useTrigger/useKernel/useKernelError + KernelProvider",
   "type": "module",
   "license": "MIT",
   "repository": {
@@ -40,8 +40,9 @@
     "react": ">=18"
   },
   "devDependencies": {
-    "@s-age/kernelee": "^0.4.0",
+    "@s-age/kernelee": "^0.5.0",
     "@testing-library/react": "^16.0.1",
+    "@types/node": "^24.0.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "jsdom": "^25.0.1",

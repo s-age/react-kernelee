@@ -1,13 +1,25 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { expect, test } from 'vitest';
-import { BufferBuilder, KernelBuilder, fail, symbol, type Kernel } from '@s-age/kernelee';
+import { BufferBuilder, KernelBuilder, defineCallable, fail, portV, type Kernel } from '@s-age/kernelee';
 import { KernelProvider, useKernelError } from '../src/index.js';
 
-const boom = symbol<void, void>('react-kernelee.useKernelError.boom');
+// `KernelBuilder.registerVerb` is @internal (stripped from the emitted .d.ts) —
+// bind verb-returning handlers through `defineCallable`/`portV`/`wire`, the
+// public idiom. The minted symbol id is `<name>.<key>`, so the assertion below
+// keeps the same `react-kernelee.useKernelError.boom` prefix.
+const BoomPort = defineCallable('react-kernelee.useKernelError', {
+  boom: portV<void, void>('always fails'),
+});
+const boom = BoomPort.boom;
 
 function buildKernel(): Kernel {
   const builder = new KernelBuilder();
-  builder.registerVerb(boom, (_payload: void) => fail(new Error('kaboom')));
+  BoomPort.wire(
+    {
+      boom: (_payload: void) => fail(new Error('kaboom')),
+    },
+    builder,
+  );
   // No onError injected — failures land on the default sink, KernelErrorState.
   return builder.build({ buffer: new BufferBuilder() });
 }

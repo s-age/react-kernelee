@@ -12,12 +12,17 @@ import { useKernel } from './useKernel.js';
  * call a component-stable identity so it can be handed to `onClick` et al.
  * without retriggering effects/memoization that depend on it.
  *
- * The no-payload overload is sugar for `KernelSymbol<void, O>` commands —
- * `useDispatch(sym)` becomes `() => void`, mirroring `kernel.call(sym)`'s
- * own void-payload overload (`kernelee`'s `Kernel.call` does the same
- * for the same reason: most commands in a UI are `void`-payload triggers,
- * e.g. "reload", and `dispatch(sym, undefined)` at every call site would be
- * noise).
+ * `void`-payload commands are rejected by useDispatch's symbol form — use
+ * `useTrigger` instead. The exclusion is structural, not a style
+ * preference: `kernel.dispatch`'s phantom payload type is erased at
+ * runtime, so a single forwarding code path cannot tell a `void` contract
+ * from any other at the point it hands the argument to `kernel.dispatch`.
+ * The only way to keep a `void` contract from ever receiving a forwarded
+ * argument (e.g. a React `SyntheticEvent` from `onClick={dispatch}`) is to
+ * make that binding uncompilable and push `void` commands onto a hook that
+ * never accepts an argument in the first place. The exclusive three-way
+ * split is: **void → `useTrigger` / non-void → `useDispatch(sym)` / action →
+ * `useDispatch()`**.
  *
  * The *no-symbol* overload is the Redux shape: `useDispatch()` hands back one
  * generic dispatcher for the whole component, fed with actions built by
@@ -25,9 +30,17 @@ import { useKernel } from './useKernel.js';
  * guarantee (one `useCallback` on the kernel), and a component firing many
  * commands needs one hook instead of one per symbol.
  */
+
+/** Rejects exactly-void payload symbols from useDispatch's symbol form.
+ *  The brand's property name IS the error message the compiler shows. */
+type NoVoidPayload<P> = [P] extends [void]
+  ? [void] extends [P]
+    ? { 'void-payload commands must use useTrigger — useDispatch(sym) forwards its argument': never }
+    : unknown
+  : unknown;
+
 export function useDispatch(): <P, O>(action: Action<P, O>) => void;
-export function useDispatch<O>(sym: KernelSymbol<void, O>): () => void;
-export function useDispatch<P, O>(sym: KernelSymbol<P, O>): (payload: P) => void;
+export function useDispatch<P, O>(sym: KernelSymbol<P, O> & NoVoidPayload<P>): (payload: P) => void;
 export function useDispatch<P, O>(
   sym?: KernelSymbol<P, O>,
 ): (arg?: P | Action<unknown, unknown>) => void {

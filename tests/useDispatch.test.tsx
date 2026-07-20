@@ -11,72 +11,33 @@ import {
   symbol,
   type Kernel,
 } from '@s-age/kernelee';
-import { KernelProvider, useBuffer, useDispatch } from '../src/index.js';
+import { KernelProvider, useBuffer, useDispatch, useTrigger } from '../src/index.js';
 import { until } from './support.js';
 
 const CounterState = defineState('react-kernelee.useDispatch.Counter', { n: 0 });
-const increment = symbol<void, void>('react-kernelee.useDispatch.increment');
 
-function buildKernel(): Kernel {
-  const builder = new KernelBuilder();
-  builder.register(increment, (kernel: Kernel, _payload: void) => {
-    kernel.buffer.mutate(CounterState, (c: { n: number }) => ({ n: c.n + 1 }));
-  });
-  const bufferBuilder = new BufferBuilder();
-  bufferBuilder.allocate(CounterState);
-  return builder.build({ buffer: bufferBuilder });
+// MARK: - Type-level assertions for the void-payload exclusion
+//
+// `useDispatch`'s symbol-form overload rejects `void`-payload symbols at
+// compile time (`NoVoidPayload`); `useTrigger` is their sole binding form.
+// This function is never called — it exists only for `tsc --noEmit` (which
+// includes `tests/` per tsconfig) to check the `@ts-expect-error` markers
+// and the still-legal non-void form.
+function typeAssertions(): void {
+  const voidSym = symbol<void, void>('react-kernelee.useDispatch.typeAssertions.void');
+  const numSym = symbol<number, void>('react-kernelee.useDispatch.typeAssertions.num');
+
+  // @ts-expect-error — void-payload symbols are rejected by useDispatch's symbol form; use useTrigger.
+  useDispatch(voidSym);
+
+  // @ts-expect-error — useTrigger only binds void-payload symbols.
+  useTrigger(numSym);
+
+  // Regression check: a non-void symbol still binds normally through useDispatch.
+  const dispatchNum: (payload: number) => void = useDispatch(numSym);
+  void dispatchNum;
 }
-
-function Counter() {
-  const { n } = useBuffer(CounterState);
-  const dispatchIncrement = useDispatch(increment);
-  return (
-    <button data-testid="btn" onClick={dispatchIncrement}>
-      {n}
-    </button>
-  );
-}
-
-test('clickingCallsDispatchWhichRunsTheHandlerOnTheKernel', async () => {
-  const kernel = buildKernel();
-  render(
-    <KernelProvider kernel={kernel}>
-      <Counter />
-    </KernelProvider>,
-  );
-
-  fireEvent.click(screen.getByTestId('btn'));
-
-  // dispatch runs on the serial CommandBus, off the click's own call stack —
-  // poll the kernel-side effect first (kernelee idiom), then the DOM.
-  await until(() => kernel.buffer.read(CounterState).n === 1);
-  await waitFor(() => {
-    expect(screen.getByTestId('btn').textContent).toBe('1');
-  });
-});
-
-test('theReturnedDispatcherIsReferentiallyStableAcrossRerenders', () => {
-  const kernel = buildKernel();
-  const captured: Array<() => void> = [];
-
-  function Probe() {
-    const [, setTick] = useState(0);
-    const dispatchIncrement = useDispatch(increment);
-    captured.push(dispatchIncrement);
-    return <button data-testid="tick" onClick={() => setTick((t) => t + 1)} />;
-  }
-
-  render(
-    <KernelProvider kernel={kernel}>
-      <Probe />
-    </KernelProvider>,
-  );
-  expect(captured).toHaveLength(1);
-
-  fireEvent.click(screen.getByTestId('tick')); // forces a rerender unrelated to the kernel/symbol
-  expect(captured).toHaveLength(2);
-  expect(captured[1]).toBe(captured[0]);
-});
+void typeAssertions;
 
 // MARK: - useDispatch() — the no-symbol (Redux-shaped) overload
 
